@@ -1,48 +1,55 @@
 """
-Database Schemas
+Database Schemas for the Top-up Website
 
-Define your MongoDB collection schemas here using Pydantic models.
-These schemas are used for data validation in your application.
+Each Pydantic model corresponds to a MongoDB collection. The collection name is the lowercase of the class name.
 
-Each Pydantic model represents a collection in your database.
-Model name is converted to lowercase for the collection name:
-- User -> "user" collection
-- Product -> "product" collection
-- BlogPost -> "blogs" collection
+Example: class User -> "user"
 """
+from typing import Optional, List, Literal
+from pydantic import BaseModel, Field, HttpUrl
 
-from pydantic import BaseModel, Field
-from typing import Optional
+class Game(BaseModel):
+    name: str = Field(..., description="Game title")
+    slug: str = Field(..., description="URL friendly identifier")
+    publisher: Optional[str] = Field(None, description="Publisher name")
+    image: Optional[HttpUrl] = Field(None, description="Cover image URL")
+    banner: Optional[HttpUrl] = Field(None, description="Banner image URL")
+    tags: List[str] = Field(default_factory=list, description="Searchable tags")
 
-# Example schemas (replace with your own):
+class TopupOption(BaseModel):
+    game_slug: str = Field(..., description="Related game slug")
+    title: str = Field(..., description="Display title, e.g., 86 Diamonds")
+    amount: int = Field(..., ge=1, description="Numeric amount, e.g., diamonds or currency units")
+    currency: Literal["IDR"] = Field("IDR", description="Currency code")
+    price: int = Field(..., ge=0, description="Price in smallest unit (IDR)")
+    popular: bool = Field(False, description="Mark as popular for highlighting")
 
-class User(BaseModel):
-    """
-    Users collection schema
-    Collection name: "user" (lowercase of class name)
-    """
-    name: str = Field(..., description="Full name")
-    email: str = Field(..., description="Email address")
-    address: str = Field(..., description="Address")
-    age: Optional[int] = Field(None, ge=0, le=120, description="Age in years")
-    is_active: bool = Field(True, description="Whether user is active")
+class Order(BaseModel):
+    game_slug: str = Field(..., description="Game slug")
+    game_name: str = Field(..., description="Game name for easy rendering")
+    user_id: str = Field(..., description="Player ID")
+    server: Optional[str] = Field(None, description="Server ID or region if applicable")
+    topup_title: str = Field(..., description="Selected top-up option title")
+    amount: int = Field(..., description="Selected amount")
+    price: int = Field(..., description="Price in IDR")
+    payment_method: Literal["QRIS","Dana","OVO","Gopay","Bank Transfer"]
+    status: Literal["pending","processing","completed","failed"] = "pending"
+    contact: Optional[str] = Field(None, description="Whatsapp/Email for notification")
+    note: Optional[str] = Field(None, description="Optional note from user")
 
-class Product(BaseModel):
-    """
-    Products collection schema
-    Collection name: "product" (lowercase of class name)
-    """
-    title: str = Field(..., description="Product title")
-    description: Optional[str] = Field(None, description="Product description")
-    price: float = Field(..., ge=0, description="Price in dollars")
-    category: str = Field(..., description="Product category")
-    in_stock: bool = Field(True, description="Whether product is in stock")
+class Testimonial(BaseModel):
+    name: str
+    avatar: Optional[HttpUrl] = None
+    message: str
+    rating: int = Field(ge=1, le=5, default=5)
+    game_slug: Optional[str] = None
 
-# Add your own schemas here:
-# --------------------------------------------------
+class BlogPost(BaseModel):
+    title: str
+    slug: str
+    excerpt: str
+    image: Optional[HttpUrl] = None
 
-# Note: The Flames database viewer will automatically:
-# 1. Read these schemas from GET /schema endpoint
-# 2. Use them for document validation when creating/editing
-# 3. Handle all database operations (CRUD) directly
-# 4. You don't need to create any database endpoints!
+class FAQ(BaseModel):
+    question: str
+    answer: str
